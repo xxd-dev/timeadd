@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Adder with Editable Output</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            text-align: center;
+        }
+        input {
+            margin: 10px 0;
+            padding: 5px;
+            font-size: .75em;
+            justify-content: center;
+        }
+        pre {
+            font-size: 1.5em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <pre>Add Time Together
+<input type="time" id="current-time" step="900" disabled> + <input type="time" id="user-time" step="900" value="00:00"> = <input type="time" id="sum-time" step="900"></pre>
+        <!-- Input for "Current Time" -->
+
+    </div>
+
+    <script>
+        // Function to get the current real-time as an object {hours, minutes}
+        function getCurrentTime() {
+            const now = new Date();
+            return { hours: now.getHours(), minutes: now.getMinutes() };
+        }
+
+        // Function to update the current time display every second
+        function updateCurrentTimeDisplay() {
+            const { hours, minutes } = getCurrentTime();
+            document.getElementById('current-time').value = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            updateSumTime();  // Recalculate the sum when current time updates
+        }
+
+        // Function to add two times together
+        function addTimes(current, user) {
+            let totalHours = current.hours + user.hours;
+            let totalMinutes = current.minutes + user.minutes;
+
+            // Handle minute overflow
+            if (totalMinutes >= 60) {
+                totalHours += Math.floor(totalMinutes / 60);
+                totalMinutes %= 60;
+            }
+
+            // Handle hour overflow in 24-hour format
+            totalHours %= 24;
+
+            return { hours: totalHours, minutes: totalMinutes };
+        }
+
+        // Function to update the sum input field based on current time and user time
+        function updateSumTime() {
+            const currentTime = getTimeFromInput('current-time');
+            const userTime = getTimeFromInput('user-time');
+            const summedTime = addTimes(currentTime, userTime);
+
+            // Set the summed time input field
+            document.getElementById('sum-time').value = `${String(summedTime.hours).padStart(2, '0')}:${String(summedTime.minutes).padStart(2, '0')}`;
+        }
+
+        // Function to update the user time when the sum time is modified
+        function updateUserTime() {
+            const currentTime = getTimeFromInput('current-time');
+            const sumTime = getTimeFromInput('sum-time');
+            let userHours = sumTime.hours - currentTime.hours;
+            let userMinutes = sumTime.minutes - currentTime.minutes;
+
+            // Handle underflow of minutes
+            if (userMinutes < 0) {
+                userMinutes += 60;
+                userHours--;
+            }
+
+            // Handle underflow of hours
+            if (userHours < 0) {
+                userHours += 24;
+            }
+
+            // Set the user time input field
+            document.getElementById('user-time').value = `${String(userHours).padStart(2, '0')}:${String(userMinutes).padStart(2, '0')}`;
+        }
+
+        // Helper function to get the time (hours and minutes) from an input field
+        function getTimeFromInput(inputId) {
+            const [hours, minutes] = document.getElementById(inputId).value.split(':').map(Number);
+            return { hours, minutes };
+        }
+
+        // Set event listeners for inputs
+        document.getElementById('user-time').addEventListener('input', updateSumTime);
+        document.getElementById('sum-time').addEventListener('input', updateUserTime);
+
+        // Initialize: Set current time and initial sum on page load
+        setInterval(updateCurrentTimeDisplay, 1000);  // Update the current time every second
+    </script>
+</body>
+</html>
