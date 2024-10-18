@@ -3,37 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Time Adder with Editable Output</title>
+    <title>Washing Mashine Time Calculator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
         }
+        input {
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            font-family: monospace;
+            font-size: 1em;
+        }
+        pre {
+            font-size: 1.1em;
+        }
         .container {
-            max-width: 400px;
             margin: auto;
             text-align: center;
         }
-        input {
-            margin: 10px 0;
-            padding: 5px;
-            font-size: .75em;
-            justify-content: center;
+        .table {
+            display: table;
+            width: 100%;
+            max-width: 40em;
+            margin: 0 auto;
         }
-        pre {
-            font-size: 1.5em;
-            margin-top: 20px;
+
+        .row {
+            display: table-row;
+        }
+
+        .cell {
+            display: table-cell;
+            padding: 0;
+            border: none;
+            text-align: center;
+            vertical-align: middle;
+            max-height: 1em;
+            line-height: 0;
+        }
+        .header-row .header-cell {
+            display: table-cell;
+            width: 100%;
+            font-weight: bold;
+            background-color: #f0f0f0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <pre>Add Time Together
-<input type="time" id="current-time" step="900" disabled> + <input type="time" id="user-time" step="900" value="00:00"> = <input type="time" id="sum-time" step="900"></pre>
-        <!-- Input for "Current Time" -->
-
+        <pre><b><u>Washing Mashine Time Calculator</u></b></pre>
     </div>
-
+    <div class="table">
+        <div class="row">
+            <div class="cell"><pre>Time</pre></div>
+            <div class="cell"><pre> </pre></div>
+            <div class="cell"><pre>Cycle</pre></div>
+            <div class="cell"><pre> </pre></div>
+            <div class="cell"><pre>Wait</pre></div>
+            <div class="cell"><pre> </pre></div>
+            <div class="cell"><pre>End</pre></div>
+        </div>
+        <div class="row">
+            <div class="cell"><input type="time" id="current-time" step="900" disabled></div>
+            <div class="cell"><pre> + </pre></div>
+            <div class="cell"><input type="time" id="cycle-length" step="900" value="03:09"></div>
+            <div class="cell"><pre> + </pre></div>
+            <div class="cell"><input type="time" id="user-time" step="900" value="00:00"></div>
+            <div class="cell"><pre> = </pre></div>
+            <div class="cell"><input type="time" id="sum-time" step="900"></div>
+        </div>
+</div>
     <script>
         // Function to get the current real-time as an object {hours, minutes}
         function getCurrentTime() {
@@ -49,9 +90,9 @@
         }
 
         // Function to add two times together
-        function addTimes(current, user) {
-            let totalHours = current.hours + user.hours;
-            let totalMinutes = current.minutes + user.minutes;
+        function addTimes(current, user, wash) {
+            let totalHours = current.hours + user.hours + wash.hours;
+            let totalMinutes = current.minutes + user.minutes +  wash.minutes;
 
             // Handle minute overflow
             if (totalMinutes >= 60) {
@@ -69,7 +110,8 @@
         function updateSumTime() {
             const currentTime = getTimeFromInput('current-time');
             const userTime = getTimeFromInput('user-time');
-            const summedTime = addTimes(currentTime, userTime);
+            const washTime = getTimeFromInput('cycle-length');
+            const summedTime = addTimes(currentTime, userTime, washTime);
 
             // Set the summed time input field
             document.getElementById('sum-time').value = `${String(summedTime.hours).padStart(2, '0')}:${String(summedTime.minutes).padStart(2, '0')}`;
@@ -79,8 +121,9 @@
         function updateUserTime() {
             const currentTime = getTimeFromInput('current-time');
             const sumTime = getTimeFromInput('sum-time');
-            let userHours = sumTime.hours - currentTime.hours;
-            let userMinutes = sumTime.minutes - currentTime.minutes;
+            const washTime = getTimeFromInput('cycle-length');
+            let userHours = sumTime.hours - currentTime.hours - washTime.hours;
+            let userMinutes = sumTime.minutes - currentTime.minutes - washTime.minutes;
 
             // Handle underflow of minutes
             if (userMinutes < 0) {
@@ -106,9 +149,11 @@
         // Set event listeners for inputs
         document.getElementById('user-time').addEventListener('input', updateSumTime);
         document.getElementById('sum-time').addEventListener('input', updateUserTime);
+        document.getElementById('cycle-length').addEventListener('input', updateSumTime);
 
         // Initialize: Set current time and initial sum on page load
-        setInterval(updateCurrentTimeDisplay, 1000);  // Update the current time every second
+        updateCurrentTimeDisplay();
+        setInterval(updateCurrentTimeDisplay, 100);  // Update the current time every second
     </script>
 </body>
 </html>
