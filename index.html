@@ -6,9 +6,11 @@
     <title>Washing Mashine Time Calculator</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
             margin: 20px;
+            background: #FFF1E8;
+            color: #000000;
         }
+        
         input {
             margin: 0;
             padding: 0;
@@ -16,13 +18,16 @@
             font-family: monospace;
             font-size: 1em;
         }
+        
         pre {
             font-size: 1.1em;
         }
+        
         .container {
             margin: auto;
             text-align: center;
         }
+        
         .table {
             display: table;
             width: 100%;
@@ -43,12 +48,6 @@
             max-height: 1em;
             line-height: 0;
         }
-        .header-row .header-cell {
-            display: table-cell;
-            width: 100%;
-            font-weight: bold;
-            background-color: #f0f0f0;
-        }
     </style>
 </head>
 <body>
@@ -66,92 +65,98 @@
             <div class="cell"><pre>End</pre></div>
         </div>
         <div class="row">
-            <div class="cell"><input type="time" id="current-time" step="900" disabled></div>
+            <div class="cell"><input type="time" id="current-time" disabled></div>
             <div class="cell"><pre> + </pre></div>
-            <div class="cell"><input type="time" id="cycle-length" step="900" value="03:09"></div>
+            <div class="cell"><input type="time" id="cycle-time" value="00:00"></div>
             <div class="cell"><pre> + </pre></div>
-            <div class="cell"><input type="time" id="user-time" step="900" value="00:00"></div>
+            <div class="cell"><input type="time" id="offset-time" value="00:00"></div>
             <div class="cell"><pre> = </pre></div>
-            <div class="cell"><input type="time" id="sum-time" step="900"></div>
+            <div class="cell"><input type="time" id="sum-time"></div>
         </div>
 </div>
     <script>
         // Function to get the current real-time as an object {hours, minutes}
+        let lastEdited = "offset";
+        const urlParams = new URLSearchParams(window.location.search);
+        const cycleTime = urlParams.get('t');
+        if (cycleTime) {
+            try {
+                document.getElementById('cycle-time').value = cycleTime;
+            } catch(err) {
+                console.log(err.message);
+            }
+        }
+        
         function getCurrentTime() {
             const now = new Date();
             return { hours: now.getHours(), minutes: now.getMinutes() };
         }
 
-        // Function to update the current time display every second
         function updateCurrentTimeDisplay() {
             const { hours, minutes } = getCurrentTime();
             document.getElementById('current-time').value = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-            updateSumTime();  // Recalculate the sum when current time updates
+            updateTimes();
+        }
+        
+        function userEditedOffset() {
+            lastEdited = "offset";
+            updateTimes();
+        }
+        
+        function userEditedSum() {
+            lastEdited = "sum";
+            updateTimes();
+        }
+        
+        function userEditedCycle() {
+            updateTimes();
         }
 
-        // Function to add two times together
-        function addTimes(current, user, wash) {
-            let totalHours = current.hours + user.hours + wash.hours;
-            let totalMinutes = current.minutes + user.minutes +  wash.minutes;
-
-            // Handle minute overflow
-            if (totalMinutes >= 60) {
-                totalHours += Math.floor(totalMinutes / 60);
-                totalMinutes %= 60;
-            }
-
-            // Handle hour overflow in 24-hour format
-            totalHours %= 24;
-
-            return { hours: totalHours, minutes: totalMinutes };
-        }
-
-        // Function to update the sum input field based on current time and user time
-        function updateSumTime() {
-            const currentTime = getTimeFromInput('current-time');
-            const userTime = getTimeFromInput('user-time');
-            const washTime = getTimeFromInput('cycle-length');
-            const summedTime = addTimes(currentTime, userTime, washTime);
-
-            // Set the summed time input field
-            document.getElementById('sum-time').value = `${String(summedTime.hours).padStart(2, '0')}:${String(summedTime.minutes).padStart(2, '0')}`;
-        }
-
-        // Function to update the user time when the sum time is modified
-        function updateUserTime() {
-            const currentTime = getTimeFromInput('current-time');
-            const sumTime = getTimeFromInput('sum-time');
-            const washTime = getTimeFromInput('cycle-length');
-            let userHours = sumTime.hours - currentTime.hours - washTime.hours;
-            let userMinutes = sumTime.minutes - currentTime.minutes - washTime.minutes;
-
-            // Handle underflow of minutes
-            if (userMinutes < 0) {
-                userMinutes += 60;
-                userHours--;
-            }
-
-            // Handle underflow of hours
-            if (userHours < 0) {
-                userHours += 24;
-            }
-
-            // Set the user time input field
-            document.getElementById('user-time').value = `${String(userHours).padStart(2, '0')}:${String(userMinutes).padStart(2, '0')}`;
-        }
-
-        // Helper function to get the time (hours and minutes) from an input field
         function getTimeFromInput(inputId) {
             const [hours, minutes] = document.getElementById(inputId).value.split(':').map(Number);
-            return { hours, minutes };
+            return {hours, minutes};
+        }
+        
+        function updateTimes() {
+            const currentTime = getTimeFromInput('current-time');
+            const washTime = getTimeFromInput('cycle-time');
+            const offsetTime = getTimeFromInput('offset-time');
+            const sumTime = getTimeFromInput('sum-time');
+            
+            if (lastEdited == "offset") {
+                let hours = currentTime.hours + offsetTime.hours + washTime.hours;
+                let minutes = currentTime.minutes + offsetTime.minutes + washTime.minutes;
+
+                if (minutes >= 60) {
+                    hours += Math.floor(minutes / 60);
+                    minutes %= 60;
+                }
+
+                hours %= 24;
+                
+                document.getElementById('sum-time').value = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            } else {
+                let hours = sumTime.hours - currentTime.hours - washTime.hours;
+                let minutes = sumTime.minutes - currentTime.minutes - washTime.minutes;
+                while (minutes < 0) {
+                    minutes += 60;
+                    hours--;
+                }
+
+                while (hours < 0) {
+                    hours += 24;
+                }
+                
+                document.getElementById('offset-time').value = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            }
         }
 
         // Set event listeners for inputs
-        document.getElementById('user-time').addEventListener('input', updateSumTime);
-        document.getElementById('sum-time').addEventListener('input', updateUserTime);
-        document.getElementById('cycle-length').addEventListener('input', updateSumTime);
-
-        // Initialize: Set current time and initial sum on page load
+        document.getElementById('offset-time').addEventListener('input', userEditedOffset);
+        document.getElementById('sum-time').addEventListener('input', userEditedSum);
+        document.getElementById('cycle-time').addEventListener('input', userEditedCycle);
+        document.getElementById('sum-time').addEventListener('focus', userEditedSum);
+        
         updateCurrentTimeDisplay();
         setInterval(updateCurrentTimeDisplay, 100);  // Update the current time every second
     </script>
